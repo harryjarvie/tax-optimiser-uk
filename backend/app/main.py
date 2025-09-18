@@ -2,9 +2,9 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
-from services.parser import parse_bank_csv
-from rules.engine import evaluate_rules, load_rules
-from services.store import Store
+from backend.app.services.parser import parse_bank_csv
+from backend.app.rules.engine import evaluate_rules, load_rules
+from backend.app.services.store import Store
 
 app = FastAPI(title="UK Tax Optimiser MVP")
 
