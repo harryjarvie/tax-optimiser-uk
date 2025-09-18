@@ -1,3 +1,8 @@
+from backend.app.data import models
+from backend.app.data.database import engine
+
+# Create tables on startup
+models.Base.metadata.create_all(bind=engine)
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
@@ -70,3 +75,30 @@ def findings(business_id: int):
     ctx = store.build_context(business_id)
     out = evaluate_rules(rules, ctx)
     return {"findings": out}
+from fastapi import UploadFile, File
+import os
+
+UPLOAD_DIR = "backend/app/data/uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+import pandas as pd
+from backend.app.data import models
+from backend.app.data.database import get_db
+from sqlalchemy.orm import Session
+from fastapi import Depends
+
+@app.post("/upload/bank/{business_id}")
+async def upload_bank_csv(business_id: int, file: UploadFile = File(...)):
+    # Accept both .csv and .txt (Safari often renames CSVs as .csv.txt)
+    if not (file.filename.endswith(".csv") or file.filename.endswith(".txt")):
+        raise HTTPException(status_code=400, detail="Please upload a .csv file")
+
+    contents = await file.read()
+    decoded = contents.decode("utf-8")
+
+    # Always save with .csv extension, even if Safari renames it
+    save_path = f"uploads/bank_{business_id}.csv"
+    with open(save_path, "w", encoding="utf-8") as f:
+        f.write(decoded)
+
+    return {"message": f"File saved successfully as {save_path}"}
