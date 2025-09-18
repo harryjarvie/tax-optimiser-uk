@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: tax-optimiser-uk
+    env: python
+    region: frankfurt  # or another EU region close to UK
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn backend.app.main:app --host 0.0.0.0 --port 10000"
+    envVars:
+      - key: DATABASE_URL
+        value: sqlite:///backend/app/data/app.db
+      - key: ACCESS_CODE
+        value: prod123
