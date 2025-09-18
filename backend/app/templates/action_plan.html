@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Action Plan</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {font-family: -apple-system, Arial; margin: 24px; line-height: 1.5}
+    .topbar {display: flex; gap: 12px; margin-bottom: 16px; align-items: center}
+    button {padding: 8px 12px; border: 1px solid #ccc; border-radius: 8px; background: #f7f7f7; cursor: pointer}
+    .card {border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 12px}
+    .small {color: #666; font-size: 12px}
+    @media print {
+      .topbar {display: none}
+      a {color: black; text-decoration: none}
+      body {margin: 12mm}
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <button onclick="window.print()">Download as PDF</button>
+    <a href="/"><button>Home</button></a>
+    <a href="/docs"><button>API docs</button></a>
+  </div>
+
+  <h1>Tax Optimiser Action Plan</h1>
+  <div id="summary"></div>
+  <div id="cards"></div>
+
+  <script>
+    async function load() {
+      const urlParams = new URLSearchParams(window.location.search)
+      const businessId = urlParams.get("business_id")
+      const res = await fetch(`/findings/${businessId}`)
+      const data = await res.json()
+
+      let total = 0
+      const cards = document.getElementById("cards")
+
+      data.findings.forEach(f => {
+        total += Number(f.estimated_saving || 0)
+        const c = document.createElement("div")
+        c.className = "card"
+        c.innerHTML = `
+          <h2>${f.name}</h2>
+          <p><b>Why:</b> ${f.why}</p>
+          <p><b>Action:</b> ${f.how_to_do_it}</p>
+          <p><b>Estimated saving:</b> £${Number(f.estimated_saving).toFixed(2)}</p>
+          <p><a href="${f.hmrc_link}" target="_blank">HMRC Guidance</a></p>
+          <p class="small">Evidence:</p>
+          <ul>${f.evidence_examples.map(e => "<li>"+e+"</li>").join("")}</ul>
+        `
+        cards.appendChild(c)
+      })
+
+      document.getElementById("summary").innerHTML =
+        `<p><b>Total potential savings:</b> £${total.toFixed(2)}</p>`
+    }
+    load()
+  </script>
+</body>
+</html>
