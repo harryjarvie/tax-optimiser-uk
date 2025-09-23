@@ -1,51 +1,46 @@
 import csv
-from io import StringIO
+import io
 
-HEADER_MAP = {
-    "date": ["date", "transaction date", "posted date"],
-    "description": ["description", "narrative", "details", "transaction"],
-    "amount": ["amount", "value", "debit/credit", "transaction amount"]
-}
+def parse_bank_csv(data: bytes):
+    # Decode bytes into text
+    text = data.decode("utf-8")
+    f = io.StringIO(text)
+    reader = csv.DictReader(f)
 
-def normalize_header(header: str) -> str:
-    return header.strip().lower()
+    if not reader.fieldnames:
+        raise ValueError("CSV file is missing headers")
 
-def find_column(header_row, expected_variants):
-    if not header_row:
-        return None
-    for col in header_row:
-        if normalize_header(col) in expected_variants:
-            return col
-    return None
+    # Normalise headers (lowercase, strip spaces)
+    fieldnames = [h.strip().lower() for h in reader.fieldnames]
+    mapping = {}
 
-def parse_bank_csv(file_content: str):
-    if isinstance(file_content, bytes):
-        file_content = file_content.decode("utf-8")
+    # Map flexible header names to standard ones
+    for i, h in enumerate(fieldnames):
+        if h in ["date", "transaction date", "txn date"]:
+            mapping["date"] = reader.fieldnames[i]
+        elif h in ["description", "details", "narrative", "info"]:
+            mapping["description"] = reader.fieldnames[i]
+        elif h in ["amount", "value", "debit", "credit", "debit/credit"]:
+            mapping["amount"] = reader.fieldnames[i]
 
-    reader = csv.DictReader(StringIO(file_content))
+    # Check for required fields
+    required = ["date", "description", "amount"]
+    for k in required:
+        if k not in mapping:
+            raise ValueError(f"Missing column: {k}")
 
-    date_col = find_column(reader.fieldnames, HEADER_MAP["date"])
-    desc_col = find_column(reader.fieldnames, HEADER_MAP["description"])
-    amt_col = find_column(reader.fieldnames, HEADER_MAP["amount"])
-
-    if not (date_col and desc_col and amt_col):
-        return {
-            "error": f"CSV missing required columns. Found: {reader.fieldnames}. "
-                     f"Expected something like: date ({HEADER_MAP['date']}), "
-                     f"description ({HEADER_MAP['description']}), "
-                     f"amount ({HEADER_MAP['amount']})."
-        }
-
-    transactions = []
+    # Build rows
+    rows = []
     for row in reader:
         try:
-            transactions.append({
-                "date": row[date_col],
-                "description": row[desc_col],
-                "amount": float(row[amt_col].replace(",", ""))
-            })
-        except Exception as e:
-            print(f"Skipping row {row}: {e}")
-            continue
+            amount = float(row[mapping["amount"]].replace(",", "").strip())
+        except ValueError:
+            amount = 0.0  # fallback if not convertible
 
-    return {"transactions": transactions}
+        rows.append({
+            "date": row[mapping["date"]].strip(),
+            "description": row[mapping["description"]].strip(),
+            "amount": amount
+        })
+
+    return rows
