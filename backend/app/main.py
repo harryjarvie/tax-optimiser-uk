@@ -80,24 +80,22 @@ from fastapi import Depends
 
 @app.post("/upload/bank/{business_id}")
 async def upload_bank(business_id: int, file: UploadFile = File(...)):
-    # Accept both .csv and .txt (Safari sometimes renames CSVs)
-    if not (file.filename.endswith(".csv") or file.filename.endswith(".txt")):
-        raise HTTPException(status_code=400, detail="Please upload a .csv file")
-
     try:
         contents = await file.read()
         decoded = contents.decode("utf-8")
 
-        # Parse the CSV into transactions
         rows = parse_bank_csv(decoded)
-
-        # Store transactions in the DB
         count = store.add_transactions(business_id, rows)
 
         return {
             "status": "success",
             "business_id": business_id,
-            "transactions_uploaded": count
+            "transactions_uploaded": count,
+            "sample": rows[:3]
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
