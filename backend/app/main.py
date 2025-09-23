@@ -1,18 +1,24 @@
-from backend.app.data import models
-from backend.app.data.database import engine
-
-# Create tables on startup
-models.Base.metadata.create_all(bind=engine)
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
+import os
+import pandas as pd
+
+# Local imports
+from backend.app.data import models
+from backend.app.data.database import engine, get_db
 from backend.app.services.parser import parse_bank_csv
 from backend.app.rules.engine import evaluate_rules, load_rules
 from backend.app.services.store import Store
 
+# Create tables on startup
+models.Base.metadata.create_all(bind=engine)
+
 app = FastAPI(title="UK Tax Optimiser MVP")
 
+# Enable CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -20,8 +26,11 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
+# In-memory store + load rules
 store = Store()
 rules = load_rules()
+
+# ========== MODELS ==========
 
 class BusinessIn(BaseModel):
     name: str
@@ -31,6 +40,8 @@ class BusinessIn(BaseModel):
 class PeriodIn(BaseModel):
     start_date: str
     end_date: str
+
+# ========== ROUTES ==========
 
 @app.get("/health")
 def health():
@@ -61,48 +72,25 @@ def create_period(business_id: int, body: PeriodIn):
     pid = store.create_period(business_id, body.start_date, body.end_date)
     return {"period_id": pid}
 
-@app.get("/findings/{business_id}")
-def findings(business_id: int):
-    ctx = store.build_context(business_id)
-    out = evaluate_rules(rules, ctx)
-    return {"findings": out}
-from fastapi import UploadFile, File
-import os
-
-UPLOAD_DIR = "backend/app/data/uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-
-import pandas as pd
-from backend.app.data import models
-from backend.app.data.database import get_db
-from sqlalchemy.orm import Session
-from fastapi import Depends
+# ========== FIXED UPLOAD ENDPOINT ==========
 
 @app.post("/upload/bank/{business_id}")
 async def upload_bank(business_id: int, file: UploadFile = File(...)):
     try:
-        print(f"[DEBUG] Received upload for business {business_id} - filename: {file.filename}")
-
-        # 1. Validate file type
+        # Validate file type
         if not (file.filename.endswith(".csv") or file.filename.endswith(".txt")):
             return {"status": "error", "message": f"Invalid file type: {file.filename}"}
 
-        # 2. Read file
+        # Read + decode file
         contents = await file.read()
-        print(f"[DEBUG] File size: {len(contents)} bytes")
-
         decoded = contents.decode("utf-8")
-        print(f"[DEBUG] First 100 chars of decoded file: {decoded[:100]}")
 
-        # 3. Parse transactions
+        # Parse CSV into transactions
         rows = parse_bank_csv(decoded)
-        print(f"[DEBUG] Parsed {len(rows)} transactions")
 
-        # 4. Store transactions
+        # Store transactions
         count = store.add_transactions(business_id, rows)
-        print(f"[DEBUG] Stored {count} transactions in store")
 
-        # 5. Success response
         return {
             "status": "success",
             "business_id": business_id,
@@ -111,5 +99,12 @@ async def upload_bank(business_id: int, file: UploadFile = File(...)):
         }
 
     except Exception as e:
-        print(f"[ERROR] Upload failed: {e}")
         return {"status": "error", "message": str(e)}
+
+# ========== FINDINGS ==========
+
+@app.get("/findings/{business_id}")
+def findings(business_id: int):
+    ctx = store.build_context(business_id)
+    out = evaluate_rules(rules, ctx)
+    return {"findings": out}
