@@ -1,0 +1,50 @@
+[
+  {
+    "name": "Claim AIA on qualifying plant and machinery",
+    "keywords": ["machine", "equipment", "plant", "computer", "furniture"],
+    "why": "Assets like machinery and office equipment may qualify for Annual Investment Allowance",
+    "how_to_do_it": "Claim 100% of the cost in your capital allowances section",
+    "estimated_saving": 0.2,
+    "hmrc_link": "https://www.gov.uk/capital-allowances/annual-investment-allowance"
+  },
+  {
+    "name": "Check Employment Allowance eligibility",
+    "keywords": ["salary", "payroll", "wages", "staff", "nic"],
+    "why": "If you have employees, you may reduce your NIC liability",
+    "how_to_do_it": "Claim Employment Allowance via your PAYE software",
+    "estimated_saving": 5000,
+    "hmrc_link": "https://www.gov.uk/claim-employment-allowance"
+  },
+  {
+    "name": "R&D Tax Relief",
+    "keywords": ["research", "development", "prototype", "innovation", "lab"],
+    "why": "Businesses developing new products, processes, or services may qualify for R&D relief",
+    "how_to_do_it": "Include R&D costs in your Corporation Tax return to claim relief",
+    "estimated_saving": 0.33,
+    "hmrc_link": "https://www.gov.uk/guidance/corporation-tax-research-and-development-rd-relief"
+  },
+  {
+    "name": "VAT Registration Threshold",
+    "keywords": ["revenue", "sales", "income"],
+    "why": "If annual revenue exceeds £90,000 (2025 threshold), you must register for VAT",
+    "how_to_do_it": "Register for VAT online with HMRC",
+    "estimated_saving": 0,
+    "hmrc_link": "https://www.gov.uk/vat-registration"
+  },
+  {
+    "name": "Home Office Expenses",
+    "keywords": ["rent", "utilities", "internet", "phone", "home"],
+    "why": "If you work from home, you may claim a portion of household expenses",
+    "how_to_do_it": "Use HMRC simplified flat rates or calculate actual business use",
+    "estimated_saving": 312,
+    "hmrc_link": "https://www.gov.uk/simpler-income-tax-simplified-expenses/working-from-home"
+  },
+  {
+    "name": "Mileage Allowance Relief",
+    "keywords": ["fuel", "mileage", "car", "travel"],
+    "why": "You can claim mileage allowance for business travel in a personal vehicle",
+    "how_to_do_it": "Claim 45p per mile for the first 10,000 miles and 25p thereafter",
+    "estimated_saving": 0,
+    "hmrc_link": "https://www.gov.uk/expenses-and-benefits-business-travel-mileage/rules-for-tax"
+  }
+]
