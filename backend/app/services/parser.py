@@ -1,7 +1,6 @@
 import csv
 from io import StringIO
 
-# Accepted header variations
 HEADER_MAP = {
     "date": ["date", "transaction date", "posted date"],
     "description": ["description", "narrative", "details", "transaction"],
@@ -12,29 +11,30 @@ def normalize_header(header: str) -> str:
     return header.strip().lower()
 
 def find_column(header_row, expected_variants):
+    if not header_row:
+        return None
     for col in header_row:
         if normalize_header(col) in expected_variants:
             return col
     return None
 
 def parse_bank_csv(file_content: str):
-    # Decode if bytes are passed in
     if isinstance(file_content, bytes):
         file_content = file_content.decode("utf-8")
 
     reader = csv.DictReader(StringIO(file_content))
 
-    # Try to find the right columns
     date_col = find_column(reader.fieldnames, HEADER_MAP["date"])
     desc_col = find_column(reader.fieldnames, HEADER_MAP["description"])
     amt_col = find_column(reader.fieldnames, HEADER_MAP["amount"])
 
     if not (date_col and desc_col and amt_col):
-        raise ValueError(
-            f"CSV is missing required columns. Found: {reader.fieldnames}. "
-            f"Expected something like: date ({HEADER_MAP['date']}), "
-            f"description ({HEADER_MAP['description']}), amount ({HEADER_MAP['amount']})."
-        )
+        return {
+            "error": f"CSV missing required columns. Found: {reader.fieldnames}. "
+                     f"Expected something like: date ({HEADER_MAP['date']}), "
+                     f"description ({HEADER_MAP['description']}), "
+                     f"amount ({HEADER_MAP['amount']})."
+        }
 
     transactions = []
     for row in reader:
@@ -48,4 +48,4 @@ def parse_bank_csv(file_content: str):
             print(f"Skipping row {row}: {e}")
             continue
 
-    return transactions
+    return {"transactions": transactions}
