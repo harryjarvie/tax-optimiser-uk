@@ -81,21 +81,35 @@ from fastapi import Depends
 @app.post("/upload/bank/{business_id}")
 async def upload_bank(business_id: int, file: UploadFile = File(...)):
     try:
+        print(f"[DEBUG] Received upload for business {business_id} - filename: {file.filename}")
+
+        # 1. Validate file type
+        if not (file.filename.endswith(".csv") or file.filename.endswith(".txt")):
+            return {"status": "error", "message": f"Invalid file type: {file.filename}"}
+
+        # 2. Read file
         contents = await file.read()
+        print(f"[DEBUG] File size: {len(contents)} bytes")
+
         decoded = contents.decode("utf-8")
+        print(f"[DEBUG] First 100 chars of decoded file: {decoded[:100]}")
 
+        # 3. Parse transactions
         rows = parse_bank_csv(decoded)
-        count = store.add_transactions(business_id, rows)
+        print(f"[DEBUG] Parsed {len(rows)} transactions")
 
+        # 4. Store transactions
+        count = store.add_transactions(business_id, rows)
+        print(f"[DEBUG] Stored {count} transactions in store")
+
+        # 5. Success response
         return {
             "status": "success",
             "business_id": business_id,
             "transactions_uploaded": count,
             "sample": rows[:3]
         }
-    except Exception as e:
-        return {
-            "status": "error",
-            "message": str(e)
-        }
 
+    except Exception as e:
+        print(f"[ERROR] Upload failed: {e}")
+        return {"status": "error", "message": str(e)}
