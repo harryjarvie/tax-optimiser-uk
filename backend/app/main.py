@@ -77,19 +77,25 @@ def create_period(business_id: int, body: PeriodIn):
 @app.post("/upload/bank/{business_id}")
 async def upload_bank(business_id: int, file: UploadFile = File(...)):
     try:
-        if not (file.filename.endswith(".csv") or file.filename.endswith(".txt")):
-            return {"status": "error", "message": f"Invalid file type: {file.filename}"}
+        print(f"[DEBUG] Upload received for business {business_id}, file: {file.filename}")
 
         contents = await file.read()
-        decoded = contents.decode("utf-8")
+        print(f"[DEBUG] File size: {len(contents)} bytes")
+
+        decoded = contents.decode("utf-8", errors="ignore")
+        print(f"[DEBUG] First 100 chars: {decoded[:100]}")
 
         result = parse_bank_csv(decoded)
+        print(f"[DEBUG] Parser output keys: {list(result.keys())}")
 
         if "error" in result:
             return {"status": "error", "message": result["error"]}
 
         rows = result["transactions"]
+        print(f"[DEBUG] Parsed {len(rows)} transactions")
+
         count = store.add_transactions(business_id, rows)
+        print(f"[DEBUG] Stored {count} rows")
 
         return {
             "status": "success",
@@ -99,6 +105,7 @@ async def upload_bank(business_id: int, file: UploadFile = File(...)):
         }
 
     except Exception as e:
+        print(f"[ERROR] Upload failed: {str(e)}")
         return {"status": "error", "message": str(e)}
 
 # ========== FINDINGS ==========
