@@ -61,15 +61,6 @@ def create_period(business_id: int, body: PeriodIn):
     pid = store.create_period(business_id, body.start_date, body.end_date)
     return {"period_id": pid}
 
-@app.post("/upload/bank/{business_id}")
-async def upload_bank(business_id: int, file: UploadFile = File(...)):
-    if not file.filename.endswith(".csv"):
-        raise HTTPException(status_code=400, detail="Upload a CSV file")
-    data = await file.read()
-    rows = parse_bank_csv(data)
-    count = store.add_transactions(business_id, rows)
-    return {"rows_saved": count}
-
 @app.get("/findings/{business_id}")
 def findings(business_id: int):
     ctx = store.build_context(business_id)
@@ -88,17 +79,25 @@ from sqlalchemy.orm import Session
 from fastapi import Depends
 
 @app.post("/upload/bank/{business_id}")
-async def upload_bank_csv(business_id: int, file: UploadFile = File(...)):
-    # Accept both .csv and .txt (Safari often renames CSVs as .csv.txt)
+async def upload_bank(business_id: int, file: UploadFile = File(...)):
+    # Accept both .csv and .txt (Safari sometimes renames CSVs)
     if not (file.filename.endswith(".csv") or file.filename.endswith(".txt")):
         raise HTTPException(status_code=400, detail="Please upload a .csv file")
 
-    contents = await file.read()
-    decoded = contents.decode("utf-8")
+    try:
+        contents = await file.read()
+        decoded = contents.decode("utf-8")
 
-    # Always save with .csv extension, even if Safari renames it
-    save_path = f"uploads/bank_{business_id}.csv"
-    with open(save_path, "w", encoding="utf-8") as f:
-        f.write(decoded)
+        # Parse the CSV into transactions
+        rows = parse_bank_csv(decoded)
 
-    return {"message": f"File saved successfully as {save_path}"}
+        # Store transactions in the DB
+        count = store.add_transactions(business_id, rows)
+
+        return {
+            "status": "success",
+            "business_id": business_id,
+            "transactions_uploaded": count
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
