@@ -76,23 +76,34 @@ def create_period(business_id: int, body: PeriodIn):
 
 @app.post("/upload/bank/{business_id}")
 async def upload_bank(business_id: int, file: UploadFile = File(...)):
-    if not (file.filename.endswith(".csv") or file.filename.endswith(".txt")):
-        raise HTTPException(status_code=400, detail="Please upload a .csv file")
+    try:
+        if not (file.filename.endswith(".csv") or file.filename.endswith(".txt")):
+            raise HTTPException(status_code=400, detail="Please upload a .csv file")
 
-    # Read the raw contents as text
-    contents = await file.read()
-    if isinstance(contents, bytes):
-        contents = contents.decode("utf-8")
+        contents = await file.read()
 
-    # Pass raw string to parser
-    rows = parse_bank_csv(contents)
+        # Debug log to Render logs
+        print("DEBUG: type of contents ->", type(contents))
+        if isinstance(contents, bytes):
+            contents = contents.decode("utf-8")
+        print("DEBUG: first 200 chars ->", contents[:200])
 
-    count = store.add_transactions(business_id, rows)
-    return {
-        "status": "success",
-        "business_id": business_id,
-        "transactions_uploaded": count,
-        "sample": rows[:3]
+        rows = parse_bank_csv(contents)
+        count = store.add_transactions(business_id, rows)
+
+        return {
+            "status": "success",
+            "business_id": business_id,
+            "transactions_uploaded": count,
+            "sample": rows[:3]
+        }
+
+    except Exception as e:
+        # Print full error in Render logs
+        import traceback
+        traceback.print_exc()
+        return {"status": "error", "message": str(e)}
+
     }
 
 # ========== FINDINGS ==========
