@@ -1,18 +1,24 @@
 import csv
 import io
 
-def parse_bank_csv(text: str):
+def parse_bank_csv(data: bytes):
+    # Decode bytes into text
+    if isinstance(data, bytes):
+        text = data.decode("utf-8")
+    else:
+        text = str(data)
+
     f = io.StringIO(text)
     reader = csv.DictReader(f)
 
     if not reader.fieldnames:
         raise ValueError("CSV file is missing headers")
 
-    print("DEBUG: CSV Headers ->", reader.fieldnames)
-
+    # Normalize headers (lowercase, strip spaces)
     fieldnames = [h.strip().lower() for h in reader.fieldnames]
     mapping = {}
 
+    # Map flexible header names to standard ones
     for i, h in enumerate(fieldnames):
         if h in ["date", "transaction date", "txn date"]:
             mapping["date"] = reader.fieldnames[i]
@@ -21,6 +27,15 @@ def parse_bank_csv(text: str):
         elif h in ["amount", "value", "debit", "credit", "debit/credit"]:
             mapping["amount"] = reader.fieldnames[i]
 
+    # Force fallback if common headers exist
+    if "description" not in mapping and "Details" in reader.fieldnames:
+        mapping["description"] = "Details"
+    if "amount" not in mapping and "Value" in reader.fieldnames:
+        mapping["amount"] = "Value"
+    if "date" not in mapping and "Transaction Date" in reader.fieldnames:
+        mapping["date"] = "Transaction Date"
+
+    # Check for required fields
     required = ["date", "description", "amount"]
     for k in required:
         if k not in mapping:
@@ -37,8 +52,8 @@ def parse_bank_csv(text: str):
         rows.append({
             "date": row[mapping["date"]].strip(),
             "description": row[mapping["description"]].strip(),
-            "amount": amount,
-            "account": "default"   # <-- prevent missing account errors
+            "amount": amount
         })
 
+    print("DEBUG: Parsed rows ->", rows)
     return rows
