@@ -108,5 +108,5 @@ async def upload_bank(business_id: int, file: UploadFile = File(...)):
 @app.get("/findings/{business_id}")
 def findings(business_id: int):
     ctx = store.build_context(business_id)
-    out = evaluate_rules(rules, ctx)
+    out = evaluate_rules(ctx)
     return {"findings": out}
