@@ -7,31 +7,41 @@ def load_rules():
     with open(RULES_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
 
-def evaluate_rules(transactions):
-    rules = load_rules()
+def evaluate_rules(ctx):
     findings = []
 
-    for rule in rules:
-        matched = []
-        for txn in transactions:
-            desc = txn["description"].lower()
-            if any(keyword in desc for keyword in rule["keywords"]):
-                matched.append(f"{txn['date']} {txn['description']} {txn['amount']}")
+    # Make sure we’re iterating over transaction dicts
+    transactions = ctx.get("transactions", [])
+    if isinstance(transactions, str):
+        # If somehow it’s a single string, skip
+        return findings
 
-        if matched:
-            saving = rule["estimated_saving"]
-            if 0 < saving < 1:  # percentage of transaction
-                estimated = abs(sum([txn["amount"] for txn in transactions if any(k in txn["description"].lower() for k in rule["keywords"])])) * saving
-            else:
-                estimated = saving
+    for txn in transactions:
+        if not isinstance(txn, dict):
+            continue  # skip anything malformed
 
+        desc = txn.get("description", "").lower()
+        amount = txn.get("amount", 0.0)
+
+        # Example rules
+        if "wages" in desc or "salary" in desc:
             findings.append({
-                "name": rule["name"],
-                "why": rule["why"],
-                "how_to_do_it": rule["how_to_do_it"],
-                "estimated_saving": round(estimated, 2),
-                "hmrc_link": rule["hmrc_link"],
-                "evidence_examples": matched
+                "name": "Check Employment Allowance eligibility",
+                "why": "You appear to have payroll costs",
+                "how_to_do_it": "If eligible, reduce employer NICs by the allowance in your PAYE software",
+                "estimated_saving": 5000,
+                "hmrc_link": "https://www.gov.uk/claim-employment-allowance",
+                "evidence_examples": [desc]
             })
 
-    return {"findings": findings}
+        if "machine" in desc or "equipment" in desc or "furniture" in desc:
+            findings.append({
+                "name": "Claim AIA on qualifying plant and machinery",
+                "why": "You bought assets that likely qualify for capital allowances",
+                "how_to_do_it": "Add them to your main pool and claim a 100% deduction this year if eligible",
+                "estimated_saving": amount * 0.2,  # rough estimate
+                "hmrc_link": "https://www.gov.uk/capital-allowances/annual-investment-allowance",
+                "evidence_examples": [f"{txn.get('date')} {desc} {amount}"]
+            })
+
+    return findings
