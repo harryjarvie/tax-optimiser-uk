@@ -82,7 +82,7 @@ async def upload_bank(business_id: int, file: UploadFile = File(...)):
 
         contents = await file.read()
 
-        # Debug log to Render logs
+        # Debug log
         print("DEBUG: type of contents ->", type(contents))
         if isinstance(contents, bytes):
             contents = contents.decode("utf-8")
@@ -99,12 +99,9 @@ async def upload_bank(business_id: int, file: UploadFile = File(...)):
         }
 
     except Exception as e:
-        # Print full error in Render logs
         import traceback
         traceback.print_exc()
         return {"status": "error", "message": str(e)}
-
-    }
 
 # ========== FINDINGS ==========
 
