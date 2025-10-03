@@ -1,14 +1,20 @@
 import csv
 import io
 
-def parse_bank_csv(data: bytes):
-    # Decode bytes into text
-    text = data.decode("utf-8")
+def parse_bank_csv(data):
+    # Handle both bytes and string input
+    if isinstance(data, bytes):
+        text = data.decode("utf-8")
+    else:
+        text = data  # already a string
+
     f = io.StringIO(text)
     reader = csv.DictReader(f)
 
     if not reader.fieldnames:
         raise ValueError("CSV file is missing headers")
+
+    print("DEBUG: CSV Headers ->", reader.fieldnames)
 
     # Normalise headers (lowercase, strip spaces)
     fieldnames = [h.strip().lower() for h in reader.fieldnames]
