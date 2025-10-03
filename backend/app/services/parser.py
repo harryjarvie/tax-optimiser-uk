@@ -2,11 +2,16 @@ import csv
 import io
 
 def parse_bank_csv(data):
-    # Handle both bytes and string input
+    # Handle both bytes and str input
     if isinstance(data, bytes):
         text = data.decode("utf-8")
+    elif isinstance(data, str):
+        text = data
+    elif isinstance(data, list):
+        # Join list into text, in case data was split into lines
+        text = "\n".join(data)
     else:
-        text = data  # already a string
+        raise ValueError(f"Unsupported data type: {type(data)}")
 
     f = io.StringIO(text)
     reader = csv.DictReader(f)
@@ -16,11 +21,10 @@ def parse_bank_csv(data):
 
     print("DEBUG: CSV Headers ->", reader.fieldnames)
 
-    # Normalise headers (lowercase, strip spaces)
+    # Normalise headers
     fieldnames = [h.strip().lower() for h in reader.fieldnames]
     mapping = {}
 
-    # Map flexible header names to standard ones
     for i, h in enumerate(fieldnames):
         if h in ["date", "transaction date", "txn date"]:
             mapping["date"] = reader.fieldnames[i]
@@ -29,20 +33,17 @@ def parse_bank_csv(data):
         elif h in ["amount", "value", "debit", "credit", "debit/credit"]:
             mapping["amount"] = reader.fieldnames[i]
 
-    # Check for required fields
     required = ["date", "description", "amount"]
     for k in required:
         if k not in mapping:
             raise ValueError(f"Missing column: {k}")
 
-    # Build rows
     rows = []
     for row in reader:
         try:
             amount = float(row[mapping["amount"]].replace(",", "").strip())
-        except ValueError:
-            amount = 0.0  # fallback if not convertible
-
+        except Exception:
+            amount = 0.0
         rows.append({
             "date": row[mapping["date"]].strip(),
             "description": row[mapping["description"]].strip(),
