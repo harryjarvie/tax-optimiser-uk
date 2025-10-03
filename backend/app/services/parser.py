@@ -26,16 +26,19 @@ def parse_bank_csv(text: str):
         if k not in mapping:
             raise ValueError(f"Missing column: {k}")
 
+    # Build rows
     rows = []
     for row in reader:
         try:
             amount = float(row[mapping["amount"]].replace(",", "").strip())
         except Exception:
-            amount = 0.0
+            amount = 0.0  # fallback if not convertible
+
         rows.append({
             "date": row[mapping["date"]].strip(),
             "description": row[mapping["description"]].strip(),
-            "amount": amount
+            "amount": amount,
+            "account": "default"   # <-- prevent missing account errors
         })
 
     return rows
