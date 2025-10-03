@@ -76,37 +76,24 @@ def create_period(business_id: int, body: PeriodIn):
 
 @app.post("/upload/bank/{business_id}")
 async def upload_bank(business_id: int, file: UploadFile = File(...)):
-    try:
-        print(f"[DEBUG] Upload received for business {business_id}, file: {file.filename}")
+    if not (file.filename.endswith(".csv") or file.filename.endswith(".txt")):
+        raise HTTPException(status_code=400, detail="Please upload a .csv file")
 
-        contents = await file.read()
-        print(f"[DEBUG] File size: {len(contents)} bytes")
+    # Read the raw contents as text
+    contents = await file.read()
+    if isinstance(contents, bytes):
+        contents = contents.decode("utf-8")
 
-        decoded = contents.decode("utf-8", errors="ignore")
-        print(f"[DEBUG] First 100 chars: {decoded[:100]}")
+    # Pass raw string to parser
+    rows = parse_bank_csv(contents)
 
-        result = parse_bank_csv(decoded)
-        print(f"[DEBUG] Parser output keys: {list(result.keys())}")
-
-        if "error" in result:
-            return {"status": "error", "message": result["error"]}
-
-        rows = result["transactions"]
-        print(f"[DEBUG] Parsed {len(rows)} transactions")
-
-        count = store.add_transactions(business_id, rows)
-        print(f"[DEBUG] Stored {count} rows")
-
-        return {
-            "status": "success",
-            "business_id": business_id,
-            "transactions_uploaded": count,
-            "sample": rows[:3]
-        }
-
-    except Exception as e:
-        print(f"[ERROR] Upload failed: {str(e)}")
-        return {"status": "error", "message": str(e)}
+    count = store.add_transactions(business_id, rows)
+    return {
+        "status": "success",
+        "business_id": business_id,
+        "transactions_uploaded": count,
+        "sample": rows[:3]
+    }
 
 # ========== FINDINGS ==========
 

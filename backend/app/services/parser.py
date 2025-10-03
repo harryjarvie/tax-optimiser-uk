@@ -1,18 +1,7 @@
 import csv
 import io
 
-def parse_bank_csv(data):
-    # Handle both bytes and str input
-    if isinstance(data, bytes):
-        text = data.decode("utf-8")
-    elif isinstance(data, str):
-        text = data
-    elif isinstance(data, list):
-        # Join list into text, in case data was split into lines
-        text = "\n".join(data)
-    else:
-        raise ValueError(f"Unsupported data type: {type(data)}")
-
+def parse_bank_csv(text: str):
     f = io.StringIO(text)
     reader = csv.DictReader(f)
 
@@ -21,7 +10,6 @@ def parse_bank_csv(data):
 
     print("DEBUG: CSV Headers ->", reader.fieldnames)
 
-    # Normalise headers
     fieldnames = [h.strip().lower() for h in reader.fieldnames]
     mapping = {}
 
